@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>@MausamMitra — IMD Forecast Assistant</title>
+<meta name="theme-color" content="#12142b">
+<meta name="description" content="Conversational weather forecasts, severe-weather alerts, and crop advisories for India.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+
+<!-- ============================= ONBOARDING ============================ -->
+<!-- Shown once, before the user has a saved profile (localStorage
+     "wgpt_profile"). Talks to the SAME backend the rest of the app uses
+     (POST /auth/send-otp, POST /auth/verify-otp — see backend/auth_otp.py),
+     so it respects whatever URL is set in the existing "Backend connection"
+     settings modal. -->
+<div class="onboarding" id="onboarding">
+  <div class="ob-card">
+
+    <div class="ob-step ob-step-lang active" id="obStepLang">
+      <div class="ob-mark">
+        <svg width="40" height="40" viewBox="0 0 100 100" aria-hidden="true">
+          <defs>
+            <linearGradient id="dawnD" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1688E8"/><stop offset="45%" stop-color="#2496E8"/><stop offset="100%" stop-color="#5fb0f0"/>
+            </linearGradient>
+          </defs>
+          <rect x="4" y="4" width="92" height="92" rx="22" fill="url(#dawnD)"/>
+          <circle cx="64" cy="30" r="6" fill="#ffce6b"/>
+          <path d="M35 68 c-8 0 -14 -5.6 -14 -12.8 c0 -6.6 4.8 -12 11.2 -12.8 c1.6 -6.8 7.8 -11.8 15.2 -11.8 c7.8 0 14.2 5.4 15.6 12.6 c6.8 .6 12 6.2 12 13 c0 7.2 -6 13 -13.6 13 z" fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
+          <path d="M37.2 67.6 c-.8 4 -2.8 6.8 -5.6 8.8 c3.6 -.4 6.4 -2 8.4 -4.4" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M53.6 60 l-6.8 10.8 h6 l-2.8 9.2 l11.6 -13.2 h-6.4 z" fill="#ffce6b"/>
+        </svg>
+      </div>
+      <h2 id="obLangTitle" data-i18n="obLangTitle">Choose your language</h2>
+      <p class="ob-sub" id="obLangSub" data-i18n="obLangSub">You can always change this later from the app.</p>
+      <div class="ob-lang-row" id="obLangRow">
+        <button class="ob-lang-pill selected" data-lang="hi">हिंदी</button>
+        <button class="ob-lang-pill" data-lang="en">English</button>
+        <button class="ob-lang-pill" data-lang="mr">मराठी</button>
+        <button class="ob-lang-pill" data-lang="gu">ગુજરાતી</button>
+        <button class="ob-lang-pill" data-lang="ta">தமிழ்</button>
+        <button class="ob-lang-pill" data-lang="te">తెలుగు</button>
+        <button class="ob-lang-pill" data-lang="kn">ಕನ್ನಡ</button>
+        <button class="ob-lang-pill" data-lang="bn">বাংলা</button>
+        <button class="ob-lang-pill" data-lang="pa">ਪੰਜਾਬੀ</button>
+        <button class="ob-lang-pill" data-lang="ml">മലയാളം</button>
+      </div>
+      <button class="ob-btn" id="obLangContinueBtn" data-i18n="obContinueBtn">Continue →</button>
+    </div>
+
+    <div class="ob-step ob-step-phone" id="obStepPhone">
+      <div class="ob-mark">
+        <svg width="40" height="40" viewBox="0 0 100 100" aria-hidden="true">
+          <defs>
+            <linearGradient id="dawnA" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1688E8"/><stop offset="45%" stop-color="#2496E8"/><stop offset="100%" stop-color="#5fb0f0"/>
+            </linearGradient>
+          </defs>
+          <rect x="4" y="4" width="92" height="92" rx="22" fill="url(#dawnA)"/>
+          <circle cx="64" cy="30" r="6" fill="#ffce6b"/>
+          <path d="M35 68 c-8 0 -14 -5.6 -14 -12.8 c0 -6.6 4.8 -12 11.2 -12.8 c1.6 -6.8 7.8 -11.8 15.2 -11.8 c7.8 0 14.2 5.4 15.6 12.6 c6.8 .6 12 6.2 12 13 c0 7.2 -6 13 -13.6 13 z" fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
+          <path d="M37.2 67.6 c-.8 4 -2.8 6.8 -5.6 8.8 c3.6 -.4 6.4 -2 8.4 -4.4" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M53.6 60 l-6.8 10.8 h6 l-2.8 9.2 l11.6 -13.2 h-6.4 z" fill="#ffce6b"/>
+        </svg>
+      </div>
+      <button class="ob-back" id="obPhoneBackBtn" data-i18n="obBackBtn">← Back</button>
+      <h2 id="obPhoneTitle" data-i18n="obPhoneTitle">Let's get you set up</h2>
+      <p class="ob-sub" id="obPhoneSub" data-i18n="obPhoneSub">Enter your mobile number — we'll use it to send forecasts and disaster alerts straight to your phone.</p>
+      <label class="ob-label" id="obPhoneLabel" data-i18n="obPhoneLabel">Mobile number</label>
+      <div class="ob-field">
+        <span class="ob-cc">🇮🇳 +91</span>
+        <input id="obPhone" type="tel" inputmode="numeric" maxlength="10" placeholder="98765 43210" />
+      </div>
+      <div class="ob-hint" id="obPhoneError" hidden></div>
+      <button class="ob-btn" id="obSendOtpBtn" data-i18n="obContinueBtn">Continue →</button>
+      <div class="ob-fineprint" id="obFineprint" data-i18n="obFineprint">By continuing you agree to receive weather &amp; safety alerts via SMS/WhatsApp.</div>
+      <button class="ob-settings-link" id="obSettingsBtn" type="button">⚙ Backend settings</button>
+    </div>
+
+    <div class="ob-step ob-step-name" id="obStepName">
+      <button class="ob-back" id="obBackBtn" data-i18n="obBackBtn">← Back</button>
+      <div class="ob-verified" id="obPhoneEcho"></div>
+      <h2 id="obNameTitle" data-i18n="obNameTitle">What should we call you?</h2>
+      <p class="ob-sub" id="obNameSub" data-i18n="obNameSub">So we can greet you properly and reply in your language.</p>
+      <div class="ob-hint" id="obOtpError" hidden></div>
+      <label class="ob-label" id="obNameLabel" data-i18n="obNameLabel">Your name</label>
+      <div class="ob-field-row">
+        <div class="ob-field"><input id="obName" type="text" placeholder="e.g. Aarav Sharma" /></div>
+        <button type="button" class="kb-toggle" id="obKbToggleBtn" title="On-screen keyboard (no OS keyboard needed)">⌨️</button>
+      </div>
+      <div class="osk hidden" id="obOnscreenKeyboard"></div>
+      <button class="ob-btn" id="obContinueBtn" data-i18n="obContinueBtn">Continue →</button>
+    </div>
+
+    <div class="ob-step ob-step-hello" id="obStepHello">
+      <div class="ob-mark ob-mark-lg">
+        <svg width="56" height="56" viewBox="0 0 100 100" aria-hidden="true">
+          <defs>
+            <linearGradient id="dawnB" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1688E8"/><stop offset="45%" stop-color="#2496E8"/><stop offset="100%" stop-color="#5fb0f0"/>
+            </linearGradient>
+          </defs>
+          <rect x="4" y="4" width="92" height="92" rx="24" fill="url(#dawnB)"/>
+          <circle cx="64" cy="30" r="6" fill="#ffce6b"/>
+          <path d="M35 68 c-8 0 -14 -5.6 -14 -12.8 c0 -6.6 4.8 -12 11.2 -12.8 c1.6 -6.8 7.8 -11.8 15.2 -11.8 c7.8 0 14.2 5.4 15.6 12.6 c6.8 .6 12 6.2 12 13 c0 7.2 -6 13 -13.6 13 z" fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
+          <path d="M37.2 67.6 c-.8 4 -2.8 6.8 -5.6 8.8 c3.6 -.4 6.4 -2 8.4 -4.4" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M53.6 60 l-6.8 10.8 h6 l-2.8 9.2 l11.6 -13.2 h-6.4 z" fill="#ffce6b"/>
+        </svg>
+      </div>
+      <div class="ob-eyebrow" id="obHelloEyebrow" data-i18n="obHelloEyebrow">You're all set</div>
+      <h1 id="obHelloName">Hello 👋</h1>
+      <p class="ob-sub" id="obHelloSub" data-i18n="obHelloSub">I'm your weather &amp; disaster-alert companion — ask me anything, and switch your language anytime from the app.</p>
+      <button class="ob-btn" id="obEnterBtn" data-i18n="obLetsGoBtn">Let's go →</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="shell" id="appShell">
+<aside class="sidebar" id="sidebar">
+  <div class="side-brand">
+    <svg width="30" height="30" viewBox="0 0 100 100" aria-hidden="true">
+      <defs>
+        <linearGradient id="dawnSide" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1688E8"/><stop offset="50%" stop-color="#2496E8"/><stop offset="100%" stop-color="#5fb0f0"/>
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="92" height="92" rx="20" fill="url(#dawnSide)"/>
+      <circle cx="64" cy="30" r="6" fill="#ffce6b"/>
+      <path d="M35 68 c-8 0 -14 -5.6 -14 -12.8 c0 -6.6 4.8 -12 11.2 -12.8 c1.6 -6.8 7.8 -11.8 15.2 -11.8 c7.8 0 14.2 5.4 15.6 12.6 c6.8 .6 12 6.2 12 13 c0 7.2 -6 13 -13.6 13 z" fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M37.2 67.6 c-.8 4 -2.8 6.8 -5.6 8.8 c3.6 -.4 6.4 -2 8.4 -4.4" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M53.6 60 l-6.8 10.8 h6 l-2.8 9.2 l11.6 -13.2 h-6.4 z" fill="#ffce6b"/>
+    </svg>
+    <span>MausamMitra</span>
+  </div>
+  <nav class="side-nav">
+    <button class="side-item active" data-view="chat"><span class="side-ic">🏠</span><span>Home</span></button>
+    <button class="side-item" data-view="forecast"><span class="side-ic">📊</span><span>Forecast</span></button>
+    <button class="side-item" data-view="forecast" data-map="1"><span class="side-ic">🗺️</span><span>Map</span></button>
+    <button class="side-item" data-view="alerts"><span class="side-ic">🔔</span><span>Alerts</span></button>
+    <button class="side-item" data-view="chat"><span class="side-ic">💬</span><span>Chat</span></button>
+    <button class="side-item" data-view="safezones"><span class="side-ic">🏕️</span><span>Safe Zones</span></button>
+    <button class="side-item" data-view="profile"><span class="side-ic">👤</span><span>Profile</span></button>
+  </nav>
+</aside>
+<div class="app" id="mainApp" hidden>
+
+  <header class="topbar">
+    <div class="brand">
+      <svg width="32" height="32" viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+          <linearGradient id="dawnC" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1688E8"/><stop offset="45%" stop-color="#2496E8"/><stop offset="100%" stop-color="#5fb0f0"/>
+          </linearGradient>
+        </defs>
+        <rect x="4" y="4" width="92" height="92" rx="20" fill="url(#dawnC)"/>
+        <circle cx="64" cy="30" r="6" fill="#ffce6b"/>
+        <path d="M35 68 c-8 0 -14 -5.6 -14 -12.8 c0 -6.6 4.8 -12 11.2 -12.8 c1.6 -6.8 7.8 -11.8 15.2 -11.8 c7.8 0 14.2 5.4 15.6 12.6 c6.8 .6 12 6.2 12 13 c0 7.2 -6 13 -13.6 13 z" fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="M37.2 67.6 c-.8 4 -2.8 6.8 -5.6 8.8 c3.6 -.4 6.4 -2 8.4 -4.4" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M53.6 60 l-6.8 10.8 h6 l-2.8 9.2 l11.6 -13.2 h-6.4 z" fill="#ffce6b"/>
+      </svg>
+      <div class="brand-text">
+        <h1>@MausamMitra</h1>
+        <span class="subtitle">Live Weather • Smarter Tomorrow</span>
+      </div>
+    </div>
+    <div class="topbar-controls">
+      <select id="langSelect" title="Reply language">
+        <option value="en">EN</option>
+        <option value="hi">हिंदी</option>
+        <option value="gu">ગુજરાતી</option>
+        <option value="mr">मराठी</option>
+        <option value="ta">தமிழ்</option>
+        <option value="te">తెలుగు</option>
+        <option value="kn">ಕನ್ನಡ</option>
+        <option value="bn">বাংলা</option>
+        <option value="pa">ਪੰਜਾਬੀ</option>
+        <option value="ml">മലയാളം</option>
+      </select>
+      <button class="iconbtn" id="settingsBtn" title="Backend settings">⚙</button>
+      <span class="conn"><span class="dot" id="connDot"></span></span>
+      <span class="demo-badge" id="demoBadge" hidden title="Backend is running with DEMO_MODE=true — canned answers for the 4 example questions, using real live weather data but no Gemini API calls.">DEMO</span>
+    </div>
+  </header>
+
+  <div class="install-toast hidden" id="installToast">
+    <span>Install @MausamMitra for one-tap offline-ready access.</span>
+    <button id="installBtn">Install</button>
+    <button class="dismiss" id="installDismissBtn" title="Dismiss" aria-label="Dismiss">✕</button>
+  </div>
+
+  <div class="alert-ticker" id="alertTicker" hidden>
+    <div class="ticker-track" id="tickerTrack"></div>
+  </div>
+
+  <main class="views">
+
+    <!-- ============================= CHAT ============================= -->
+    <section id="view-chat" class="view active">
+      <div class="lang-badge-bar"><span class="lang-badge" id="langBadge">🌐 English</span></div>
+      <div class="home-greet" id="homeGreet" hidden></div>
+
+      <!-- ============== PERSONALIZED HOMEPAGE (PS 26076) ============== -->
+      <div class="persona-home" id="personaHome" hidden>
+        <div class="persona-home-head">
+          <h3 data-i18n="personaOutlookTitle">Your personalized outlook</h3>
+          <button class="persona-edit-btn" data-goto="profile" type="button" data-i18n="personaEditBtn">Edit ⚙</button>
+        </div>
+        <div class="persona-cards" id="personaCards"></div>
+      </div>
+      <button class="persona-setup-prompt" id="personaSetupPrompt" data-goto="profile" type="button" hidden>
+        <span class="persona-setup-ic">🏠</span>
+        <span class="persona-setup-txt"><b data-i18n="personaSetupTitle">Personalize your homepage</b><span id="personaSetupDesc" data-i18n="personaSetupDesc">Get AQI, UV, running hours, sea conditions &amp; more, picked for you</span></span>
+        <span class="persona-setup-arrow">›</span>
+      </button>
+
+      <div class="feature-cards" id="featureCards">
+        <button class="feature-card fc-agro" data-goto="forecast" type="button">
+          <span class="fc-ic">🌾</span>
+          <span class="fc-txt"><b data-i18n="agroTitle">Kisan Agro-Clock</b><span data-i18n="featureAgroSub">24-hr irrigation &amp; farming advisory</span></span>
+          <span class="fc-arrow">›</span>
+        </button>
+        <button class="feature-card fc-safe" data-goto="safezones" type="button">
+          <span class="fc-ic">🏕️</span>
+          <span class="fc-txt"><b data-i18n="featureSafeTitle">Nearby Safe Zones</b><span data-i18n="featureSafeSub">Cached shelters · works with zero signal</span></span>
+          <span class="fc-arrow">›</span>
+        </button>
+      </div>
+      <div id="log"></div>
+      <div class="suggestions" id="sugg"></div>
+      <div class="audio-status hidden" id="audioStatus">
+        <span class="audio-status-icon">🔊</span>
+        <span class="audio-status-text">Playing response…</span>
+        <div class="audio-speed-group">
+          <button class="audio-speed-btn active" id="speed1x" data-rate="1">1x</button>
+          <button class="audio-speed-btn" id="speed08x" data-rate="0.8">0.8x</button>
+        </div>
+        <button class="audio-stop-btn" id="audioStopBtn" title="Stop">⏹</button>
+        <div class="audio-voice-note" id="audioVoiceNote" hidden></div>
+      </div>
+      <div class="voice-wave hidden" id="voiceWave">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span class="voice-wave-label">Listening…</span>
+      </div>
+      <div class="inputrow">
+        <button class="mic" id="mic" title="Voice input">🎤</button>
+        <button class="kb-toggle" id="kbToggleBtn" title="On-screen keyboard (no OS keyboard needed)">⌨️</button>
+        <input id="inp" placeholder="Ask about weather, forecasts, or crop advisories…" data-i18n-ph="inputPlaceholder" autocomplete="off" />
+        <button class="send" id="send" data-i18n="sendBtn">Send</button>
+      </div>
+      <div class="osk-suggest-bar hidden" id="kbSuggestBar"></div>
+      <div class="osk hidden" id="onscreenKeyboard"></div>
+    </section>
+
+    <!-- ============================ FORECAST =========================== -->
+    <section id="view-forecast" class="view">
+      <div class="search-row">
+        <div class="search-wrap">
+          <input id="placeSearch" placeholder="Search a place in India…" data-i18n-ph="placeSearchPlaceholder" autocomplete="off" />
+          <div id="suggestDropdown"></div>
+        </div>
+        <button class="outline subtle locate-btn" id="useLocationBtn" title="Use my current location">📍</button>
+        <button class="outline subtle locate-btn" id="savePlaceBtn" title="Save this place to your Travel destinations">⭐</button>
+      </div>
+
+      <div id="map"></div>
+
+      <div id="forecastEmpty" class="empty-hint">
+        <div id="forecastEmptyText" data-i18n="forecastEmptyText">Search a place, tap the map, or use your current location.</div>
+        <button class="outline" id="useLocationBtnEmpty" data-i18n="useLocationEmptyBtn">📍 Use my current location</button>
+        <button class="outline" id="forecastSettingsBtn" data-i18n="forecastSettingsBtn" hidden>⚙ Open backend settings</button>
+      </div>
+
+      <div id="forecastContent" style="display:none; flex-direction:column; gap:14px;">
+        <!-- ============== OFFICIAL-STYLE IMD WARNING LEVEL BANNER ============== -->
+        <div class="warn-banner" id="warnBanner">
+          <span class="warn-dot"></span>
+          <div class="warn-text">
+            <div class="warn-label" id="warnLabel">NORMAL</div>
+            <div class="warn-desc" id="warnDesc">No active weather warnings for this location.</div>
+          </div>
+        </div>
+
+        <!-- ===================== EXPANDABLE DISASTER ACTION CARD ================ -->
+        <div class="disaster-card">
+          <button class="disaster-toggle" id="disasterToggle" aria-expanded="false">
+            <span class="dc-summary" id="disasterSummary">✅ No active disaster alerts for this location</span>
+            <span class="dc-chevron" id="disasterChevron">▾</span>
+          </button>
+          <div class="disaster-body" id="disasterBody">
+            <div class="dc-inner">
+              <div class="dc-section" id="disasterSteps"></div>
+              <div class="dc-helplines">
+                <a class="helpline-btn" href="tel:1070">📞 1070<span data-i18n="helplineState">State Disaster Helpline</span></a>
+                <a class="helpline-btn" href="tel:1077">📞 1077<span data-i18n="helplineDistrict">District Disaster Helpline</span></a>
+              </div>
+              <button class="outline" id="disasterSmsBtn" data-i18n="disasterSmsBtn">📱 Copy 160-Char SMS Weather Beacon</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="weather-hero" id="weatherHero"></div>
+        <div class="forecast-strip" id="forecastStrip"></div>
+        <div class="dial-grid" id="dialGrid"></div>
+
+        <!-- ===================== GAUGE ROW: WIND / PRESSURE / HUMIDITY ========== -->
+        <div class="gauge-row">
+          <div class="gauge-card">
+            <div class="gauge-title" data-i18n="gaugeWind">Wind</div>
+            <div class="compass-wrap" id="windCompass"></div>
+            <div class="gauge-readout" id="windReadout">— km/h</div>
+          </div>
+          <div class="gauge-card">
+            <div class="gauge-title" data-i18n="gaugePressure">Pressure</div>
+            <div class="needle-wrap" id="pressureGauge"></div>
+            <div class="gauge-readout" id="pressureReadout">— hPa</div>
+          </div>
+          <div class="gauge-card">
+            <div class="gauge-title" data-i18n="gaugeHumidity">Humidity</div>
+            <div class="needle-wrap" id="humidityGauge"></div>
+            <div class="gauge-readout" id="humidityReadout">—%</div>
+          </div>
+        </div>
+
+        <!-- ===================== RAIN OUTLOOK TIME-SLIDER ======================= -->
+        <div class="radar-card">
+          <div class="radar-head">
+            <h3 data-i18n="radarTitle">24-Hour Rain Outlook</h3>
+            <span class="radar-sub" data-i18n="radarSub">FROM HOURLY FORECAST · NOT LIVE RADAR</span>
+          </div>
+          <div class="radar-display" id="radarDisplay"></div>
+          <div class="radar-controls">
+            <button class="radar-play" id="radarPlayBtn">▶</button>
+            <input type="range" id="radarSlider" min="0" max="23" value="0" step="1" />
+            <span class="radar-time" id="radarTime">12a</span>
+          </div>
+        </div>
+
+        <!-- ===================== KISAN AGRO-CLOCK ===================== -->
+        <div class="agro-clock-card" id="agroClockCard">
+          <div class="agro-clock-head">
+            <h3 data-i18n="agroTitle">Kisan Agro-Clock</h3>
+            <span class="agro-clock-sub" data-i18n="agroSub">24-HR FARMING ADVISORY · TAP AN HOUR</span>
+          </div>
+          <div class="agro-clock-track" id="agroClockTrack"></div>
+          <div class="agro-clock-legend">
+            <span class="lg irrigate" data-i18n="agroLegendIrrigate">💧 Irrigation</span>
+            <span class="lg heat" data-i18n="agroLegendHeat">☀️ Heat alert</span>
+            <span class="lg spray" data-i18n="agroLegendSpray">🌿 Spray OK</span>
+            <span class="lg rain" data-i18n="agroLegendRain">🌧️ Rain risk</span>
+          </div>
+          <div class="agro-clock-detail" id="agroClockDetail" data-i18n="agroDetailDefault">Tap an hour on the dial above to see the farming advisory for that time.</div>
+        </div>
+
+        <div class="chart-card">
+          <h3 data-i18n="chartTitle">5-day outlook</h3>
+          <div class="chart-wrap">
+            <canvas id="forecastChart"></canvas>
+          </div>
+        </div>
+
+        <div class="crop-row">
+          <select id="cropSelect">
+            <option value="" data-i18n="cropGeneral">General advisory</option>
+            <option value="cotton" data-i18n="cropCotton">Cotton</option>
+            <option value="wheat" data-i18n="cropWheat">Wheat</option>
+            <option value="rice" data-i18n="cropRice">Rice / Paddy</option>
+            <option value="sugarcane" data-i18n="cropSugarcane">Sugarcane</option>
+            <option value="groundnut" data-i18n="cropGroundnut">Groundnut</option>
+          </select>
+          <button class="outline" id="advisoryBtn" data-i18n="advisoryBtn">Get advisory</button>
+        </div>
+        <div class="advisory-box" id="advisoryBox" style="display:none;"></div>
+
+        <div class="sms-beacon">
+          <div class="sms-beacon-head" data-i18n="smsHead">📶 Offline SMS Weather Beacon</div>
+          <div class="sms-beacon-sub" data-i18n="smsSub">A plain-text summary short enough for one SMS — share it with farmers who have no internet, just basic signal.</div>
+          <div class="sms-preview" id="smsPreview"></div>
+          <div class="sms-beacon-row">
+            <span class="sms-count" id="smsCount">0 / 160</span>
+            <button class="outline" id="smsCopyBtn" data-i18n="smsCopyBtn">📋 Copy SMS text</button>
+          </div>
+          <div class="sms-share-row">
+            <button class="outline subtle" id="smsWhatsappBtn" data-i18n="smsWhatsappBtn">💬 Share via WhatsApp</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================== SAFE ZONES =========================== -->
+    <section id="view-safezones" class="view">
+      <div class="sz-head">
+        <h2>Safe Zones</h2>
+        <span class="sz-sub">Nearest shelters &amp; evacuation points</span>
+      </div>
+      <div class="sz-status" id="szStatus">📡 Fetching your location…</div>
+      <div class="sz-radar" id="szRadar" hidden>
+        <div class="sz-radar-ring r1"></div>
+        <div class="sz-radar-ring r2"></div>
+        <div class="sz-radar-ring r3"></div>
+        <div class="sz-radar-center"></div>
+        <div class="sz-radar-dots" id="szRadarDots"></div>
+      </div>
+      <div class="sz-note">List for your district downloads automatically whenever you're online — no data used to view it offline.</div>
+      <div id="szList"></div>
+      <button class="outline" id="szRetryBtn" hidden>📍 Try again</button>
+    </section>
+
+    <!-- ============================= ALERTS ============================ -->
+    <section id="view-alerts" class="view">
+      <div class="whatsapp-card" id="whatsappCard">
+        <div class="wa-head">
+          <span class="wa-ic">🟢</span>
+          <div class="wa-txt">
+            <b>WhatsApp Alerts</b>
+            <span id="waPhoneLine">Connected · —</span>
+          </div>
+          <button class="switch on" id="waSwitch"></button>
+        </div>
+        <div class="wa-desc">Cyclone, flood &amp; heatwave alerts from NDMA SACHET are pushed to this number the moment they're issued — even if the app is closed.</div>
+      </div>
+
+      <div class="pref-list" id="prefList">
+        <div class="pref-row" data-pref="severe_weather"><span class="pref-ic">🌪️</span><span class="pref-txt">Severe weather</span><button class="switch on"></button></div>
+        <div class="pref-row" data-pref="agro_advisory"><span class="pref-ic">🌾</span><span class="pref-txt">Agro-advisory</span><button class="switch on"></button></div>
+        <div class="pref-row" data-pref="sms_fallback"><span class="pref-ic">📲</span><span class="pref-txt">SMS fallback (no WhatsApp)</span><button class="switch on"></button></div>
+        <div class="pref-row" data-pref="push"><span class="pref-ic">🔔</span><span class="pref-txt">Push notifications</span><button class="switch"></button></div>
+      </div>
+
+      <div class="helpline-card" id="helplineCard">
+        <div class="helpline-head"><span data-i18n="helplineHead">🚨 Emergency Helplines</span></div>
+        <div class="helpline-sub" id="helplineSub">Standard India-wide disaster helplines — good to know before you ever need them.</div>
+        <div class="helpline-grid">
+          <a class="helpline-btn" href="tel:112">📞 112<span data-i18n="helplineAllIndia">All-India Emergency</span></a>
+          <a class="helpline-btn" href="tel:1070">📞 1070<span data-i18n="helplineState">State Disaster Helpline</span></a>
+          <a class="helpline-btn" href="tel:1077">📞 1077<span data-i18n="helplineDistrict">District Disaster Helpline</span></a>
+          <a class="helpline-btn" href="tel:1078">📞 1078<span data-i18n="helplineNDMA">NDMA National Helpline</span></a>
+        </div>
+        <ul id="helplineActions" class="helpline-actions" hidden></ul>
+        <div class="helpline-note" data-i18n="helplineNote">Numbers follow the standard NDMA pattern used across most states — confirm your exact district number locally where possible.</div>
+        <button class="helpline-speak" id="helplineSpeakBtn" data-i18n="helplineSpeakBtn">🔊 Read helplines aloud</button>
+      </div>
+      <div class="notify-card">
+        <div class="txt"><b data-i18n="notifyBold">Push-style alerts</b><br><span data-i18n="notifyDesc">Get a device notification the moment a severe alert is fetched for your selected location.</span></div>
+        <button class="switch" id="notifySwitch"></button>
+      </div>
+
+      <button class="teaser-row" id="smsBeaconTeaser" type="button" data-goto="forecast">
+        <span class="teaser-ic">📶</span>
+        <span class="teaser-txt"><b data-i18n="teaserSmsTitle">Offline SMS Beacon</b><span data-i18n="teaserSmsSub">Share your last-known forecast with zero signal</span></span>
+        <span class="teaser-arrow">›</span>
+      </button>
+      <button class="teaser-row teaser-safe" id="safeZonesTeaser" type="button" data-goto="safezones">
+        <span class="teaser-ic">🏕️</span>
+        <span class="teaser-txt"><b data-i18n="featureSafeTitle">Nearby Safe Zones</b><span data-i18n="teaserSafeSub">Cached shelters &amp; evacuation points · works offline</span></span>
+        <span class="teaser-arrow">›</span>
+      </button>
+
+      <div id="alertsList"></div>
+    </section>
+
+    <!-- ============================= PROFILE ============================ -->
+    <section id="view-profile" class="view">
+      <div class="profile-head">
+        <div class="profile-avatar" id="profileAvatar">🙂</div>
+        <div class="profile-name" id="profileName">—</div>
+        <div class="profile-phone" id="profilePhone">—</div>
+      </div>
+      <div class="profile-list">
+        <div class="profile-row"><span>Preferred language</span><span id="profileLang">—</span></div>
+        <div class="profile-row"><span>WhatsApp alerts</span><span id="profileWa">Connected</span></div>
+        <div class="profile-row"><span>Backend</span><button class="outline subtle" id="profileSettingsBtn">⚙ Settings</button></div>
+      </div>
+
+      <!-- ============== PERSONALIZED HOMEPAGE — persona picker (PS 26076) ============== -->
+      <div class="persona-picker-card">
+        <div class="persona-picker-head">
+          <h3 data-i18n="personaPickerTitle">🏠 Personalize your homepage</h3>
+          <span class="persona-picker-sub" data-i18n="personaPickerSub">Pick what matters to you — your Home tab shows live cards for these.</span>
+        </div>
+        <div class="persona-grid" id="personaGrid">
+          <button class="persona-chip" data-persona="health"><span class="persona-ic">🩺</span><span data-i18n="personaChipHealth">Health</span></button>
+          <button class="persona-chip" data-persona="fitness"><span class="persona-ic">🏃</span><span data-i18n="personaChipFitness">Fitness</span></button>
+          <button class="persona-chip" data-persona="beach"><span class="persona-ic">🏖️</span><span data-i18n="personaChipBeach">Beach &amp; Surf</span></button>
+          <button class="persona-chip" data-persona="travel"><span class="persona-ic">✈️</span><span data-i18n="personaChipTravel">Travel</span></button>
+          <button class="persona-chip" data-persona="parent"><span class="persona-ic">🎒</span><span data-i18n="personaChipParent">Parent</span></button>
+          <button class="persona-chip" data-persona="agriculture"><span class="persona-ic">🌾</span><span data-i18n="personaChipAgriculture">Agriculture</span></button>
+          <button class="persona-chip" data-persona="commuter"><span class="persona-ic">🚗</span><span data-i18n="personaChipCommuter">Commuter</span></button>
+          <button class="persona-chip" data-persona="event"><span class="persona-ic">🎉</span><span data-i18n="personaChipEvent">Event Planner</span></button>
+        </div>
+      </div>
+
+      <button class="outline" id="profileResetBtn">↩ Reset onboarding / switch account</button>
+    </section>
+
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-view="chat"><span class="ic">💬</span><span data-i18n="tabChat">Chat</span></button>
+    <button class="tab" data-view="forecast"><span class="ic">📊</span><span data-i18n="tabForecast">Forecast</span></button>
+    <button class="tab" data-view="safezones"><span class="ic">🏕️</span><span>Safe Zones</span></button>
+    <button class="tab" data-view="alerts"><span class="ic">⚠️<span class="badge-dot" id="alertBadge"></span></span><span data-i18n="tabAlerts">Alerts</span></button>
+    <button class="tab" data-view="profile"><span class="ic">👤</span><span>Profile</span></button>
+  </nav>
+</div>
+</div><!-- /.shell -->
+
+<!-- ============================= SETTINGS MODAL ============================ -->
+<div class="modal-backdrop hidden" id="settingsModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Backend connection</h2>
+      <button class="modal-close" id="closeSettingsBtn" title="Close" aria-label="Close">✕</button>
+    </div>
+    <p>@MausamMitra talks to your FastAPI backend directly from this page. Point it at your server's URL (e.g. <code>http://localhost:8000</code>, or your deployed URL).</p>
+    <input id="apiBaseInput" placeholder="http://localhost:8000" spellcheck="false" />
+    <button class="primary" id="saveSettingsBtn">Save &amp; connect</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

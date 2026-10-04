@@ -1,0 +1,23 @@
+# Render Blueprint — ONE service. The FastAPI backend now also serves the
+# frontend directly (see the StaticFiles mount at the end of backend/main.py),
+# so there's no separate static site to create or keep in sync.
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    runtime: python
+    name: mausammitra
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      # Set the real value in the Render dashboard after the first deploy —
+      # sync:false means Render will prompt you for it instead of storing it
+      # in this file (never hardcode a real key here or commit it to git).
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.6-flash
+      - key: DEMO_MODE
+        value: "false"
